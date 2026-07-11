@@ -61,7 +61,7 @@ Java/Spring Boot 기반 백엔드 개발과 WebRTC 기반 실시간 서비스 �
 
 | Project | Description | Tech |
 |----------|-------------|------|
-| [Parrotalk](docs/parrotalk.md) | WebRTC 기반 AI 실시간 음성 통화 서비스 | React, Node.js, WebRTC |
+| [Parrotalk](docs/Project_Parrotalk.md) | WebRTC 기반 AI 실시간 음성 통화 서비스 | React, Node.js, WebRTC |
 | [ReBook](docs/rebook.md) | JWT 기반 중고 전공서 거래 플랫폼 | Spring Boot, React |
 | [Crime-Fin](docs/crime-fin.md) | 금융 범죄 예방 플랫폼 | Spring, Vue.js |
 
