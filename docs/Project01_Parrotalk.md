@@ -1,6 +1,11 @@
 # Parrotalk
 
 > **WebRTC 기반 1:1 AI 실시간 음성 통화 서비스**
+## 🎥 Demo
+
+프로젝트의 전체 동작은 아래 시연 영상을 통해 확인할 수 있습니다.
+
+- **YouTube**: [Parrotalk 시연 영상](https://www.youtube.com/watch?v=gmF1yILZO4E&feature=youtu.be)
 
 ## 프로젝트 개요
 
@@ -9,6 +14,16 @@ Parrotalk은 WebRTC를 기반으로 브라우저에서 별도의 프로그램 �
 통화 중 음성을 실시간으로 텍스트(STT)로 변환하고, AI 추천 서버와 연동하여 상황에 맞는 추천 문구를 제공하며, AWS Polly를 이용한 TTS 기능도 함께 제공합니다.
 
 저는 통화 기능의 핵심이 되는 **WebRTC 연결 과정, Signaling 서버, 실시간 STT 연동, 통화 페이지 구현**을 담당했습니다.
+
+---
+
+## 주요 기능
+
+- WebRTC 기반 1:1 실시간 음성 통화
+- AWS Transcribe를 활용한 실시간 STT
+- AI 추천 서버와 연동한 실시간 추천 대답 제공
+- AWS Polly 기반 TTS
+- WebRTC NAT Traversal(STUN/TURN) 지원
 
 ---
 
@@ -120,9 +135,55 @@ Parrotalk은 1:1 통화방 단위로 이벤트를 전달해야 했기 때문에 
 
 ## WebRTC
 
-실시간 음성 통화는 지연시간이 사용자 경험에 직접적인 영향을 미칩니다.
+실시간 통화를 구현하기 위해 WebRTC, HLS, Twilio를 비교했습니다.
 
-WebRTC는 Peer 간 직접 Media Stream을 전달하므로 별도의 미디어 서버를 거치지 않아 지연시간을 최소화할 수 있다는 장점이 있었습니다.
+### HLS
+
+- 구현 난이도는 낮음
+- 영상 스트리밍에 적합
+- 수 초 이상의 Latency 발생
+- 실시간 통화에는 부적합
+
+### Twilio
+
+- 구현이 간단함
+- 다양한 기능 제공
+- 외부 서비스 의존성
+- 사용량에 따른 비용 발생
+
+### WebRTC
+
+- 브라우저 기본 지원
+- P2P 기반 저지연 통신
+- 별도 미디어 서버 없이 통화 가능
+
+실시간 통화 서비스에서는 낮은 지연시간이 가장 중요하다고 판단하여 WebRTC를 선택했습니다.
+
+---
+
+## Mesh 구조 선택
+
+WebRTC는 통신 구조에 따라 Mesh, MCU, SFU 방식으로 나눌 수 있습니다.
+
+Parrotalk은 1:1 음성 통화를 목표로 하는 서비스였기 때문에 Mesh 구조를 선택했습니다.
+
+### Mesh
+
+- Peer 간 직접 연결
+- 서버 부하 최소화
+- 1:1 통화에 적합
+
+### MCU
+
+- 서버에서 Media를 합성
+- 서버 부하 증가
+
+### SFU
+
+- 다자간 통화에 적합
+- 구현 복잡도 증가
+
+서비스 요구사항을 고려했을 때 Mesh 구조가 가장 적합하다고 판단했습니다.
 
 ---
 
@@ -138,9 +199,25 @@ WebRTC는 Peer 간 직접 Media Stream을 전달하므로 별도의 미디어 �
 
 ## AWS Transcribe Streaming 연동
 
-통화 중 전달되는 음성 스트림을 AWS Transcribe Streaming API와 연동하여 실시간 STT 기능을 구현했습니다.
 
-브라우저에서 전달받은 음성 데이터를 서버에서 Stream 형태로 변환한 뒤 AWS Transcribe에 전달하고, 반환된 텍스트를 다시 클라이언트로 전송하도록 구성했습니다.
+AWS Transcribe는 Streaming API를 제공하여 실시간 음성 인식에 적합했고, AWS 환경과의 연동이 쉬워 선택했습니다.
+
+프로젝트를 진행하면서 Streaming Session의 생명주기를 Room 단위로 관리하도록 구조를 개선하여 호출 횟수와 비용을 줄였습니다.
+
+---
+
+## RoomManager 설계
+
+실시간 STT를 안정적으로 처리하기 위해 통화방 단위로 Session을 관리하는 RoomManager를 구현했습니다.
+
+RoomManager는 다음 정보를 관리합니다.
+
+- PassThrough Stream
+- AbortController
+- AWS Streaming Session
+- Room 상태
+
+이를 통해 하나의 통화에서 Streaming Session이 중복 생성되는 문제를 방지했습니다.
 
 ---
 
@@ -189,3 +266,11 @@ Parrotalk 프로젝트를 진행하며 가장 크게 배운 점은 **실시간 �
 또한 WebRTC 연결 과정에서 STUN, TURN, ICE Candidate의 역할을 직접 구현하고 문제를 해결하면서 네트워크 환경에 따라 연결 방식이 달라질 수 있다는 점도 이해하게 되었습니다.
 
 이후 프로젝트를 진행할 때는 기능 구현에 앞서 데이터 흐름과 세션의 생명주기를 먼저 설계하려고 노력하고 있습니다.
+
+## 앞으로 개선하고 싶은 점
+
+현재 구조는 1:1 통화를 기준으로 설계되었습니다.
+
+향후에는 SFU 기반 구조를 적용하여 다자간 통화를 지원하고, 음성 처리 서버를 별도 서비스로 분리하여 확장성을 높여보고 싶습니다.
+
+또한 WebRTC 연결 상태를 모니터링할 수 있는 지표를 수집하여 네트워크 환경에 따른 품질을 분석하는 기능도 추가해보고 싶습니다.
