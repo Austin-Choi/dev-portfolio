@@ -49,21 +49,17 @@ Java/Spring Boot 기반 백엔드 개발과 WebRTC 기반 실시간 서비스 �
 
 - Docker
 - Docker Compose
-- Kubernetes
 - AWS
-- Jenkins
-- ArgoCD
-- Netflix Eureka
 
 ---
 
 # 📂 Projects
 
-| Project | Description | Tech |
-|----------|-------------|------|
+| Project | Description                | Tech |
+|----------|----------------------------|------|
 | [Parrotalk](docs/Project01_Parrotalk.md) | WebRTC 기반 AI 실시간 음성 통화 서비스 | React, Node.js, WebRTC |
-| [ReBook](docs/rebook.md) | JWT 기반 중고 전공서 거래 플랫폼 | Spring Boot, React |
-| [Crime-Fin](docs/crime-fin.md) | 금융 범죄 예방 플랫폼 | Spring, Vue.js |
+| [ReBook](docs/Project02_Re-Book.md) | 대학생 중고 전공서 거래 플랫폼          | Spring Boot, React |
+| [Crime-Fin](docs/Project03_Crime-Fin.md) | 금융 범죄 예방 및 실시간 탐지 플랫폼      | Spring, Vue.js |
 
 ---
 
