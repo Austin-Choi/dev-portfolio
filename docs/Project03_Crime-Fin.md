@@ -27,8 +27,6 @@ Crime-Fin은 보이스피싱, 스미싱 등 금융 범죄를 예방하고 대응
 
 # 시스템 구성
 
-> Architecture Diagram 추가 예정
-
 ```
 Vue Client
 
