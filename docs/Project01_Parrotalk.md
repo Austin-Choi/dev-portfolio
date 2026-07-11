@@ -40,41 +40,9 @@ Parrotalk은 WebRTC를 기반으로 브라우저에서 별도의 프로그램 �
 
 # 시스템 구성
 
-> Architecture Diagram 추가 예정
+<img src="../images/parrotalk/architecture.png" width="800">
 
-```
-React Client
 
-        │
-
-        ▼
-
-Socket.IO Signaling Server
-
-        │
-
-        ▼
-
-WebRTC Peer Connection
-
-        │
-
-        ▼
-
-AWS Transcribe
-
-        │
-
-        ▼
-
-FastAPI AI Server
-
-        │
-
-        ▼
-
-React Client
-```
 
 WebRTC는 실제 음성 데이터를 Peer 간 직접 전송하고, Socket.IO는 Peer Connection을 생성하기 위한 Signaling을 담당하도록 역할을 분리했습니다.
 
