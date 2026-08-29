@@ -34,34 +34,26 @@ ReBook은 대학생과 졸업생이 전공 서적을 거래할 수 있는 웹 �
 # 시스템 구성
 
 ```
-   React
-
-     │
-
-     ▼
-
-Spring Boot API Gateway
-
-     │
-
-     ▼
-
-Authentication Service
-
-     │
-
-     ▼
-
-User Service
-
-     │
-
-     ▼
-
-MySQL / Redis
+    React 
+      │ 
+      ▼ 
+Spring Boot API Gateway 
+      │ 
+      ▼ 
+Authentication Service 
+      │ 
+      ▼ 
+  User Service 
+     │  │ 
+     ▼  ▼ 
+  MySQL Redis
 ```
 
 회원 인증은 JWT 기반으로 처리했으며, Access Token과 Refresh Token을 분리하여 인증 흐름을 구성했습니다.
+
+Access Token은 Authorization Header를 통해 전달하고, Refresh Token은 HttpOnly Cookie로 관리했습니다.
+
+Refresh Token은 Redis에 저장하여 재발급 요청 시 서버에 저장된 토큰과 비교하도록 구성했습니다.
 
 프로젝트 후반에는 서비스 확장성을 고려하여 일부 기능을 분리하고 Eureka를 활용한 서비스 등록 환경을 경험했습니다.
 
@@ -76,6 +68,7 @@ MySQL / Redis
 - 카카오 OAuth 로그인 구현
 - 이메일 인증 회원가입 구현
 - Access Token / Refresh Token 관리
+- Redis를 활용한 Refresh Token 및 이메일 인증 코드 관리
 
 ### Frontend
 
@@ -106,20 +99,36 @@ ReBook은 REST API 기반으로 개발했기 때문에 Stateless한 인증 방�
 
 인증 구조는 다음과 같이 구성했습니다.
 
-- Access Token : API 인증
-- Refresh Token : 로그인 상태 유지
+- Access Token : API 요청 인증
+- Refresh Token : Access Token 재발급
 
-Access Token은 짧은 만료 시간을 두고 사용했고, Refresh Token을 이용해 재발급하도록 구현했습니다.
+Access Token은 Authorization Header를 통해 전달하고, Refresh Token은 HttpOnly Cookie에 저장하여 클라이언트에서 직접 접근할 수 없도록 구성했습니다.
+
+Access Token이 만료되면 Refresh Token을 이용해 새로운 Access Token을 발급하도록 구현했습니다.
 
 ---
 
 ## Redis
 
-Access Token은 Redis를 활용하여 관리했습니다.
+Redis는 이메일 인증 코드와 Refresh Token을 관리하는 용도로 사용했습니다.
 
-토큰을 중앙에서 관리하면 로그아웃이나 토큰 무효화가 필요한 경우 빠르게 처리할 수 있기 때문입니다.
+이메일 인증 코드는 Redis에 저장하면서 3분의 TTL을 적용하여 일정 시간이 지나면 자동으로 만료되도록 구현했습니다.
 
-Refresh Token은 로그인 유지 기능을 위해 별도로 관리했습니다.
+Refresh Token은 사용자 식별값을 기준으로 Redis에 저장하고, Access Token 재발급 요청이 들어오면 Cookie로 전달된 Refresh Token과 Redis에 저장된 토큰을 비교하여 유효성을 검증했습니다.
+
+새로운 Refresh Token을 발급하면 Redis에 저장된 기존 토큰도 새로운 토큰으로 갱신하도록 구현했습니다.
+
+이를 통해 Refresh Token의 서버 측 상태를 관리하고, 기존 토큰의 재사용을 방지할 수 있도록 구성했습니다.
+
+---
+
+## MSA
+
+초기에는 하나의 Spring Boot 애플리케이션에서 대부분의 기능을 처리하는 모놀리식 구조로 개발했습니다.
+
+이후 서비스의 역할을 분리하기 위해 인증 기능과 사용자 관련 기능을 별도의 서비스로 분리하고, Eureka를 활용하여 서비스 등록 및 탐색 환경을 구성했습니다.
+
+서비스가 분리되면서 기존과 달리 서비스 간 요청에서도 인증 정보를 전달하고 검증해야 했기 때문에 JWT 전달 흐름과 인증 Filter의 동작을 함께 고려했습니다.
 
 ---
 
@@ -137,7 +146,21 @@ OAuth 인증이 완료되면 사용자 정보를 조회한 뒤 기존 회원 여
 
 이메일 인증 코드를 발송한 뒤 인증이 완료된 사용자만 회원가입을 진행할 수 있도록 구현했습니다.
 
-인증 완료 여부를 확인한 뒤 사용자 정보를 저장하도록 처리하여 인증되지 않은 이메일의 회원가입을 방지했습니다.
+인증 코드는 Redis에 저장하고 3분의 TTL을 적용했습니다.
+
+사용자가 입력한 인증 코드를 Redis에 저장된 코드와 비교하고, 인증에 성공하면 해당 인증 코드를 삭제한 뒤 회원가입에 사용할 수 있는 JWT를 발급하도록 구현했습니다.
+
+이를 통해 인증되지 않은 이메일의 회원가입을 방지했습니다.
+
+---
+
+## Refresh Token 기반 인증 관리
+
+Access Token은 API 요청 시 Authorization Header를 통해 전달하고, Refresh Token은 HttpOnly Cookie로 관리했습니다.
+
+Access Token이 만료되면 Cookie로 전달된 Refresh Token의 만료 여부와 Token Category를 확인한 뒤 Redis에 저장된 Refresh Token과 비교하여 유효성을 검증했습니다.
+
+검증에 성공하면 새로운 Access Token과 Refresh Token을 발급하고, Redis에 저장된 Refresh Token도 새로운 토큰으로 갱신하도록 구현했습니다.
 
 ---
 
